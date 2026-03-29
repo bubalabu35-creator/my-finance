@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💰 我的财务记录本</title>
+<script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #4F6EF7;
+    --primary-light: #EEF1FF;
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --info: #06B6D4;
+    --dark: #1E293B;
+    --gray: #64748B;
+    --light: #F1F5F9;
+    --border: #E2E8F0;
+    --white: #FFFFFF;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --font: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--light); color: var(--dark); min-height: 100vh; padding-bottom: 60px; }
+
+  /* NAV */
+  .nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; height: 54px;
+  }
+  .nav-logo { font-size: 18px; font-weight: 700; color: var(--primary); margin-right: 20px; white-space: nowrap; }
+  .nav-tabs { display: flex; flex: 1; overflow-x: auto; scrollbar-width: none; }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    padding: 16px 12px; font-size: 14px; cursor: pointer; white-space: nowrap;
+    color: var(--gray); border-bottom: 2px solid transparent; transition: all .2s;
+  }
+  .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* MAIN */
+  .main { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CARD */
+  .card { background: var(--white); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 18px; }
+
+  /* STAT GRID */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media(max-width:600px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-item { background: var(--primary-light); border-radius: 10px; padding: 14px 12px; text-align: center; }
+  .stat-item.green { background: #ECFDF5; }
+  .stat-item.orange { background: #FFFBEB; }
+  .stat-item.red { background: #FFF5F5; }
+  .stat-label { font-size: 12px; color: var(--gray); margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .stat-item.green .stat-value { color: var(--success); }
+  .stat-item.orange .stat-value { color: var(--warning); }
+  .stat-item.red .stat-value { color: var(--danger); }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media(max-width:500px) { .form-grid { grid-template-columns: 1fr; } }
+  .form-grid.col3 { grid-template-columns: repeat(3, 1fr); }
+  @media(max-width:600px) { .form-grid.col3 { grid-template-columns: repeat(2, 1fr); } }
+  .form-item { display: flex; flex-direction: column; gap: 4px; }
+  .form-item label { font-size: 12px; color: var(--gray); }
+  .form-item input, .form-item select, .form-item textarea {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; font-family: var(--font); background: var(--white); color: var(--dark);
+    outline: none; transition: border .2s;
+  }
+  .form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color: var(--primary); }
+  .form-item textarea { resize: vertical; min-height: 60px; }
+  .form-section-title {
+    font-size: 13px; font-weight: 600; color: var(--primary);
+    margin: 14px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--primary-light);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* BUTTON */
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-family: var(--font); font-weight: 600; transition: all .2s; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: #3B59E8; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-ghost { background: var(--light); color: var(--gray); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 6px; }
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* TAG */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-blue { background: var(--primary-light); color: var(--primary); }
+  .tag-green { background: #ECFDF5; color: var(--success); }
+  .tag-orange { background: #FFFBEB; color: var(--warning); }
+  .tag-red { background: #FFF5F5; color: var(--danger); }
+
+  /* LIST */
+  .record-list { display: flex; flex-direction: column; gap: 10px; }
+  .record-item {
+    background: var(--light); border-radius: 10px; padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  }
+  .record-info { flex: 1; }
+  .record-title { font-size: 14px; font-weight: 600; color: var(--dark); margin-bottom: 3px; }
+  .record-sub { font-size: 12px; color: var(--gray); }
+  .record-amount { font-size: 16px; font-weight: 700; text-align: right; white-space: nowrap; }
+
+  /* SNAPSHOT */
+  .snapshot-accounts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+  @media(max-width:500px) { .snapshot-accounts { grid-template-columns: 1fr; } }
+  .account-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; background: var(--light); border-radius: 8px; font-size: 13px;
+  }
+  .account-name { color: var(--gray); }
+  .account-value { font-weight: 600; }
+
+  /* CHART */
+  .chart-wrap { position: relative; height: 260px; margin-top: 10px; }
+  .chart-wrap-small { position: relative; height: 200px; }
+
+  /* CHART LEGEND TOGGLES */
+  .chart-toggles {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding: 12px;
+    background: var(--light); border-radius: 8px;
+  }
+  .chart-toggle {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 6px 10px; border-radius: 6px; transition: background .2s;
+  }
+  .chart-toggle:hover { background: var(--white); }
+  .chart-toggle-dot {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid;
+    transition: all .2s;
+  }
+  .chart-toggle.active .chart-toggle-dot { box-shadow: inset 0 0 0 2px var(--white); }
+  .chart-toggle-label { font-size: 13px; font-weight: 600; user-select: none; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 32px 20px; color: var(--gray); font-size: 14px; }
+  .empty .icon { font-size: 36px; margin-bottom: 8px; }
+
+  /* MODAL */
+  .modal-mask {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 200;
+    justify-content: center; align-items: flex-end;
+  }
+  .modal-mask.open { display: flex; }
+  @media(min-width:600px) { .modal-mask { align-items: center; } }
+  .modal {
+    background: var(--white); border-radius: 16px 16px 0 0;
+    padding: 24px 20px 32px; width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  @media(min-width:600px) { .modal { border-radius: 16px; } }
+  .modal-title {
+    font-size: 17px; font-weight: 700; margin-bottom: 18px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-close { cursor: pointer; font-size: 20px; color: var(--gray); line-height: 1; padding: 4px; }
+
+  /* OVERVIEW */
+  .overview-hero {
+    background: linear-gradient(135deg, #4F6EF7 0%, #7C3AED 100%);
+    border-radius: 16px; padding: 24px 20px; color: white; margin-bottom: 16px;
+  }
+  .overview-hero-label { font-size: 13px; opacity: .8; margin-bottom: 6px; }
+  .overview-hero-value { font-size: 36px; font-weight: 700; margin-bottom: 16px; }
+  .overview-hero-row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .overview-hero-item-label { font-size: 11px; opacity: .7; }
+  .overview-hero-item-value { font-size: 17px; font-weight: 700; }
+
+  /* RESP TABLE */
+  .resp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .resp-table th { text-align: left; padding: 8px 10px; color: var(--gray); font-weight: 600; border-bottom: 1px solid var(--border); }
+  .resp-table td { padding: 10px 10px; border-bottom: 1px solid var(--light); }
+  .resp-table tr:last-child td { border-bottom: none; }
+  .resp-table tr:hover td { background: var(--light); }
+
+  /* PIE LEGEND MOBILE FIX */
+  .pie-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: center;
+  }
+  @media(max-width:600px) {
+    .pie-container {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+  .pie-legend-item {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px; font-size: 13px;
+  }
+  .pie-legend-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .pie-legend-label { flex: 1; color: var(--gray); }
+  .pie-legend-value { font-weight: 700; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: #1E293B; color: white; padding: 10px 20px;
+    border-radius: 20px; font-size: 13px; z-index: 999;
+    opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ADD FORM PANEL */
+  .add-panel {
+    background: var(--primary-light);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .add-panel-title {
+    font-size: 14px; font-weight: 700; color: var(--primary);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* MONTH GROUP HEADER */
+  .month-header {
+    font-size: 13px; font-weight: 600; color: var(--gray);
+    margin: 16px 0 8px; display: flex; align-items: center; gap: 8px;
+  }
+
+  /* CUSTOM ACCOUNT ROW */
+  .custom-acc-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .custom-acc-row input { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: var(--font); outline: none; }
+  .custom-acc-row input:focus { border-color: var(--primary); }
+  .custom-acc-row .label-input { max-width: 120px; }
+  .custom-acc-row .del-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 18px; padding: 0 4px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">💰 财务本</div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="overview">总览</div>
+    <div class="nav-tab" data-tab="snapshot">资产快照</div>
+    <div class="nav-tab" data-tab="records">收支记录</div>
+    <div class="nav-tab" data-tab="settings">⚙️</div>
+  </div>
+</nav>
+
+<div class="main">
+
+<!-- ============================================================ OVERVIEW -->
+<section class="section active" id="section-overview">
+  <div class="overview-hero">
+    <div class="overview-hero-label">最新净资产（总资产 - 负债）</div>
+    <div class="overview-hero-value" id="hero-net">— 元</div>
+    <div class="overview-hero-row">
+      <div class="overview-hero-item">
+        <div class="overview-hero-item-label">总资产</div>
+        <div class="overview-hero-item-value" id="hero-total">—</div>
+      </div>
+      <div class="overview-hero-item">
+        <div class="overview-hero-item-label">流动资金</div>
+        <div class="overview-hero-item-value" id="hero-liquid">—</div>
+      </div>
+      <div class="overview-hero-item">
+        <div class="overview-hero-item-label">投资资产</div>
+        <div class="overview-hero-item-value" id="hero-invest">—</div>
+      </div>
+      <div class="overview-hero-item">
+        <div class="overview-hero-item-label">负债</div>
+        <div class="overview-hero-item-value" id="hero-debt">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 资产走势（多曲线可选） -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📈</span>资产走势</div>
+    <div class="chart-toggles" id="trend-toggles"></div>
+    <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+  </div>
+
+  <!-- 收支对比（三色柱状图） -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📊</span>月度收支对比（近 6 个月）</div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:12px;">自动计算：支出 = 上月末流动 + 本月收入 - 投资净支出 - 本月末流动</p>
+    <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+  </div>
+
+  <!-- 资产分布饼图（手机适配） -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🥧</span>最新资产分布</div>
+    <div class="pie-container">
+      <div class="chart-wrap-small"><canvas id="chart-pie"></canvas></div>
+      <div id="pie-legend"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SNAPSHOT -->
+<section class="section" id="section-snapshot">
+  <div class="card">
+    <div class="card-title"><span class="icon">📷</span>资产快照</div>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:16px;">建议每月月初发工资后记录一次，系统自动汇总净资产。新建时会自动复制上次数据。</p>
+    <button class="btn btn-primary" onclick="openSnapshotModal()">＋ 新建快照</button>
+  </div>
+  <div id="snapshot-list"></div>
+</section>
+
+<!-- ============================================================ RECORDS -->
+<section class="section" id="section-records">
+  <!-- ADD FORM -->
+  <div class="add-panel">
+    <div class="add-panel-title">✏️ 添加收支/投资记录</div>
+    <div class="form-item" style="margin-bottom:10px;">
+      <label>日期</label>
+      <input type="date" id="rec-date">
+    </div>
+    <div class="form-grid">
+      <div class="form-item">
+        <label>类型</label>
+        <select id="rec-type">
+          <option value="income_salary">💼 实习工资</option>
+          <option value="income_living">🏠 生活费（家里给的）</option>
+          <option value="income_other">🎁 其他收入</option>
+          <option value="invest_buy_fund">📊 买入基金</option>
+          <option value="invest_buy_gold">🥇 买入黄金</option>
+          <option value="invest_buy_etf">📉 买入ETF</option>
+          <option value="invest_sell">💰 赎回/卖出投资</option>
+          <option value="expense_big">🛒 大额消费（备忘）</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label>金额（元）</label>
+        <input type="number" id="rec-amount" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="form-item" style="margin-top:10px;">
+      <label>备注</label>
+      <textarea id="rec-note" placeholder="产品名称、消费项目等" style="min-height:48px;"></textarea>
+    </div>
+    <div class="btn-group" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+      <button class="btn btn-ghost" onclick="clearRecordForm()">清空</button>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="card">
+    <div class="card-title"><span class="icon">💸</span>收支/投资记录</div>
+    <div id="records-list-body"></div>
+  </div>
+</section>
+
+<!-- ============================================================ SETTINGS -->
+<section class="section" id="section-settings">
+  <div class="card">
+    <div class="card-title"><span class="icon">⚙️</span>数据管理</div>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:16px;">导出/导入功能可在不同浏览器间迁移数据（微信→Safari、换手机等）</p>
+    
+    <div class="btn-group" style="margin-top:0;">
+      <button class="btn btn-success" onclick="exportData()">📤 导出数据</button>
+      <button class="btn btn-primary" onclick="document.getElementById('import-file').click()">📥 导入数据</button>
+      <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+    </div>
+
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:600;color:var(--danger);margin-bottom:8px;">⚠️ 危险操作</div>
+      <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空所有数据</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📊</span>数据统计</div>
+    <div class="stat-grid">
+      <div class="stat-item"><div class="stat-label">资产快照</div><div class="stat-value" id="stats-snapshots">0</div></div>
+      <div class="stat-item green"><div class="stat-label">收支记录</div><div class="stat-value" id="stats-records">0</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">ℹ️</span>关于</div>
+    <div style="font-size:13px;color:var(--gray);line-height:1.8;">
+      <p><strong>版本：</strong>v2.0</p>
+      <p style="margin-top:8px;"><strong>存储方式：</strong>浏览器本地存储（localStorage）</p>
+      <p style="margin-top:8px;"><strong>提示：</strong>不同浏览器数据互不相通，请定期导出备份。换手机后先导出旧手机数据，再在新手机导入。</p>
+      <p style="margin-top:8px;"><strong>VPN问题：</strong>Netlify本身无需VPN，如遇访问问题可能是网络波动，稍后重试。</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /main -->
+
+<!-- ============================================================ MODAL: SNAPSHOT -->
+<div class="modal-mask" id="snapshot-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="snapshot-modal-title">新建资产快照</span>
+      <span class="modal-close" onclick="closeSnapshotModal()">✕</span>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-item">
+        <label>日期</label>
+        <input type="date" id="snap-date">
+      </div>
+      <div class="form-item">
+        <label>类型</label>
+        <select id="snap-type">
+          <option value="start">月初（发工资后）</option>
+          <option value="custom">自定义时间点</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 流动资金 -->
+    <div class="form-section-title">
+      💳 流动资金
+      <button class="btn btn-xs btn-ghost" onclick="addCustomAccount('liquid')" style="font-weight:600;">＋ 新增账户</button>
+    </div>
+    <div class="form-grid col3" id="liquid-accounts">
+      <div class="form-item"><label>中国银行</label><input type="number" id="acc-boc" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>招商银行</label><input type="number" id="acc-cmb" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>微信零钱</label><input type="number" id="acc-wx" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>零钱通</label><input type="number" id="acc-wxt" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>支付宝余额</label><input type="number" id="acc-alipay" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>余额宝</label><input type="number" id="acc-yeb" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>小荷包</label><input type="number" id="acc-xhb" placeholder="0" step="0.01"></div>
+    </div>
+    <div id="liquid-custom"></div>
+
+    <!-- 投资账户 -->
+    <div class="form-section-title">
+      📊 投资账户（当前市值）
+      <button class="btn btn-xs btn-ghost" onclick="addCustomAccount('invest')" style="font-weight:600;">＋ 新增账户</button>
+    </div>
+    <div class="form-grid col3" id="invest-accounts">
+      <div class="form-item"><label>同花顺证券/ETF</label><input type="number" id="acc-ths-etf" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>同花顺基金</label><input type="number" id="acc-ths-fund" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>支付宝基金</label><input type="number" id="acc-ali-fund" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>支付宝黄金</label><input type="number" id="acc-ali-gold" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>腾讯理财通黄金</label><input type="number" id="acc-tx-gold" placeholder="0" step="0.01"></div>
+    </div>
+    <div id="invest-custom"></div>
+
+    <!-- 负债 -->
+    <div class="form-section-title">
+      💸 负债
+      <button class="btn btn-xs btn-ghost" onclick="addCustomAccount('debt')" style="font-weight:600;">＋ 新增账户</button>
+    </div>
+    <div class="form-grid col3" id="debt-accounts">
+      <div class="form-item"><label>花呗</label><input type="number" id="acc-huabei" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>京东白条</label><input type="number" id="acc-baitiao" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>抖音月付</label><input type="number" id="acc-douyin" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>美团月付</label><input type="number" id="acc-meituan" placeholder="0" step="0.01"></div>
+      <div class="form-item"><label>朋友借款</label><input type="number" id="acc-friend" placeholder="0" step="0.01"></div>
+    </div>
+    <div id="debt-custom"></div>
+
+    <div class="form-item" style="margin-top:12px;">
+      <label>备注</label>
+      <textarea id="snap-note" placeholder="月初发了工资多少 / 本月生活费等"></textarea>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="saveSnapshot()">保存快照</button>
+      <button class="btn btn-ghost" onclick="closeSnapshotModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const DB = {
+  load(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } },
+  save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+};
+
+const SNAPSHOTS_KEY = 'fin_snapshots';
+const RECORDS_KEY   = 'fin_records';
+
+let snapshots = DB.load(SNAPSHOTS_KEY);
+let records   = DB.load(RECORDS_KEY);
+let editingSnapshotId = null;
+
+// Custom accounts buffer
+let customBuf = { liquid: [], invest: [], debt: [] };
+
+// Fixed accounts
+const FIXED_LIQUID  = ['boc','cmb','wx','wxt','alipay','yeb','xhb'];
+const FIXED_INVEST  = ['thsEtf','thsFund','aliFund','aliGold','txGold'];
+const FIXED_DEBT    = ['huabei','baitiao','douyin','meituan','friend'];
+const FIXED_LIQUID_LABELS  = {boc:'中国银行',cmb:'招商银行',wx:'微信零钱',wxt:'零钱通',alipay:'支付宝余额',yeb:'余额宝',xhb:'小荷包'};
+const FIXED_INVEST_LABELS  = {thsEtf:'同花顺证券/ETF',thsFund:'同花顺基金',aliFund:'支付宝基金',aliGold:'支付宝黄金',txGold:'腾讯理财通黄金'};
+const FIXED_DEBT_LABELS    = {huabei:'花呗',baitiao:'京东白条',douyin:'抖音月付',meituan:'美团月付',friend:'朋友借款'};
+
+const FIELD_ID_MAP = {
+  'boc':'boc','cmb':'cmb','wx':'wx','wxt':'wxt','alipay':'alipay','yeb':'yeb','xhb':'xhb',
+  'ths-etf':'thsEtf','ths-fund':'thsFund','ali-fund':'aliFund','ali-gold':'aliGold','tx-gold':'txGold',
+  'huabei':'huabei','baitiao':'baitiao','douyin':'douyin','meituan':'meituan','friend':'friend',
+};
+
+const TYPE_LABEL = {
+  income_salary:'实习工资', income_living:'生活费', income_other:'其他收入',
+  invest_buy_fund:'买入基金', invest_buy_gold:'买入黄金', invest_buy_etf:'买入ETF', invest_sell:'赎回/卖出',
+  expense_big:'大额消费',
+};
+
+// ============================================================
+// UTILS
+// ============================================================
+function genId()   { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function fmt(n)    { return Number(n||0).toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtShort(n) { const v=Number(n||0); return Math.abs(v)>=10000 ? (v/10000).toFixed(2)+'w' : v.toFixed(2); }
+function today()   { return new Date().toISOString().slice(0,10); }
+function monthOf(d){ return (d||'').slice(0,7); }
+
+function toast(msg, dur=2200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function calcSnapshot(s) {
+  let liquid = FIXED_LIQUID.reduce((a,k)=>a+(s[k]||0),0);
+  let invest = FIXED_INVEST.reduce((a,k)=>a+(s[k]||0),0);
+  let debt   = FIXED_DEBT.reduce((a,k)=>a+(s[k]||0),0);
+  if (s.customLiquid) s.customLiquid.forEach(c => liquid += (c.value||0));
+  if (s.customInvest) s.customInvest.forEach(c => invest  += (c.value||0));
+  if (s.customDebt)   s.customDebt.forEach(c   => debt   += (c.value||0));
+  return { liquid, invest, debt, total: liquid+invest, net: liquid+invest-debt };
+}
+
+// ============================================================
+// NAV
+// ============================================================
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const name = tab.dataset.tab;
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    if (name === 'overview') renderOverview();
+    if (name === 'snapshot') renderSnapshotList();
+    if (name === 'records')  { initRecordForm(); renderRecordsList(); }
+    if (name === 'settings') renderSettings();
+  });
+});
+
+// ============================================================
+// OVERVIEW
+// ============================================================
+let chartTrend = null, chartMonthly = null, chartPie = null;
+let trendVisibility = { total: true, net: true, debt: false, liquid: false, invest: false };
+
+function renderOverview() {
+  if (snapshots.length) {
+    const t = calcSnapshot(snapshots[snapshots.length-1]);
+    document.getElementById('hero-net').textContent    = '¥' + fmt(t.net);
+    document.getElementById('hero-total').textContent  = '¥' + fmt(t.total);
+    document.getElementById('hero-liquid').textContent = '¥' + fmt(t.liquid);
+    document.getElementById('hero-invest').textContent = '¥' + fmt(t.invest);
+    document.getElementById('hero-debt').textContent   = '¥' + fmt(t.debt);
+  } else {
+    ['hero-net','hero-total','hero-liquid','hero-invest','hero-debt'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+  renderTrendChart();
+  renderMonthlyChart();
+  renderPieChart();
+}
+
+function renderTrendChart() {
+  const togglesEl = document.getElementById('trend-toggles');
+  const colors = { total:'#22C55E', net:'#4F6EF7', debt:'#EF4444', liquid:'#F59E0B', invest:'#7C3AED' };
+  const labels = { total:'总资产', net:'净资产', debt:'负债', liquid:'流动资金', invest:'投资资产' };
+  
+  // render toggles
+  let html = '';
+  for (const [key, label] of Object.entries(labels)) {
+    html += `<div class="chart-toggle ${trendVisibility[key]?'active':''}" onclick="toggleTrendLine('${key}')">
+      <div class="chart-toggle-dot" style="border-color:${colors[key]};background:${trendVisibility[key]?colors[key]:'transparent'};"></div>
+      <div class="chart-toggle-label" style="color:${colors[key]};">${label}</div>
+    </div>`;
+  }
+  togglesEl.innerHTML = html;
+
+  // render chart
+  const ctx = document.getElementById('chart-trend').getContext('2d');
+  if (chartTrend) { chartTrend.destroy(); chartTrend = null; }
+  if (!snapshots.length) return;
+
+  const datasets = [];
+  const snaps = snapshots.map(s => calcSnapshot(s));
+  const dates = snapshots.map(s => s.date.slice(5));
+
+  if (trendVisibility.total)  datasets.push({ label:'总资产', data: snaps.map(s=>s.total),  borderColor:colors.total,  backgroundColor:'transparent', tension:.3, pointRadius:4, borderDash:[4,3] });
+  if (trendVisibility.net)    datasets.push({ label:'净资产', data: snaps.map(s=>s.net),    borderColor:colors.net,    backgroundColor:'rgba(79,110,247,.1)', tension:.3, fill:true, pointRadius:4 });
+  if (trendVisibility.debt)   datasets.push({ label:'负债',   data: snaps.map(s=>s.debt),   borderColor:colors.debt,   backgroundColor:'transparent', tension:.3, pointRadius:4 });
+  if (trendVisibility.liquid) datasets.push({ label:'流动资金', data: snaps.map(s=>s.liquid), borderColor:colors.liquid, backgroundColor:'transparent', tension:.3, pointRadius:4, borderDash:[2,2] });
+  if (trendVisibility.invest) datasets.push({ label:'投资资产', data: snaps.map(s=>s.invest), borderColor:colors.invest, backgroundColor:'transparent', tension:.3, pointRadius:4 });
+
+  chartTrend = new Chart(ctx, {
+    type: 'line',
+    data: { labels: dates, datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ ticks:{ callback: v => Math.abs(v)>=10000?(v/10000).toFixed(1)+'w':v } } }
+    }
+  });
+}
+
+function toggleTrendLine(key) {
+  trendVisibility[key] = !trendVisibility[key];
+  renderTrendChart();
+}
+
+function renderMonthlyChart() {
+  const ctx = document.getElementById('chart-monthly').getContext('2d');
+  if (chartMonthly) { chartMonthly.destroy(); chartMonthly = null; }
+
+  const now = new Date();
+  const months = [];
+  for (let i=5;i>=0;i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+
+  // 计算每月数据
+  const data = months.map(m => {
+    // 本月收入
+    const inc = records.filter(r=>monthOf(r.date)===m&&r.type.startsWith('income')).reduce((s,r)=>s+r.amount,0);
+    
+    // 本月投资净支出（买入为正，卖出为负）
+    const invBuy  = records.filter(r=>monthOf(r.date)===m&&r.type.startsWith('invest_buy')).reduce((s,r)=>s+r.amount,0);
+    const invSell = records.filter(r=>monthOf(r.date)===m&&r.type==='invest_sell').reduce((s,r)=>s+r.amount,0);
+    const invNet  = invBuy - invSell;
+
+    // 计算支出：上月末流动 + 本月收入 - 投资净支出 - 本月末流动
+    const thisSnap = snapshots.find(s=>monthOf(s.date)===m);
+    const prevMonth = new Date(new Date(m+'-01').getTime() - 86400000).toISOString().slice(0,7);
+    const prevSnap = snapshots.filter(s=>monthOf(s.date)===prevMonth).pop();
+    
+    let expense = 0;
+    if (thisSnap && prevSnap) {
+      const prevLiquid = calcSnapshot(prevSnap).liquid;
+      const thisLiquid = calcSnapshot(thisSnap).liquid;
+      expense = prevLiquid + inc - invNet - thisLiquid;
+      if (expense < 0) expense = 0; // 防止负数
+    }
+
+    return { inc, expense, invNet };
+  });
+
+  chartMonthly = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months.map(m=>m.slice(5)+'月'),
+      datasets: [
+        { label:'收入', data: data.map(d=>d.inc), backgroundColor:'rgba(34,197,94,.7)', borderRadius:5 },
+        { label:'支出', data: data.map(d=>d.expense), backgroundColor:'rgba(239,68,68,.7)', borderRadius:5 },
+        { label:'投资变化', data: data.map(d=>d.invNet), backgroundColor:'rgba(6,182,212,.7)', borderRadius:5 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{ family:'PingFang SC,Microsoft YaHei,sans-serif' } } } },
+      scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>Math.abs(v)>=10000?(v/10000).toFixed(1)+'w':v } } }
+    }
+  });
+}
+
+function renderPieChart() {
+  const ctx = document.getElementById('chart-pie').getContext('2d');
+  if (chartPie) { chartPie.destroy(); chartPie = null; }
+  if (!snapshots.length) return;
+
+  const s = snapshots[snapshots.length-1];
+  
+  // 计算4类资产
+  const liquid = (s.boc||0)+(s.cmb||0)+(s.wx||0)+(s.wxt||0)+(s.alipay||0)+(s.yeb||0)+(s.xhb||0);
+  const fund   = (s.thsFund||0)+(s.aliFund||0);
+  const etf    = s.thsEtf||0;
+  const gold   = (s.aliGold||0)+(s.txGold||0);
+
+  // 加自定义
+  let liquidCustom = 0, fundCustom = 0, etfCustom = 0, goldCustom = 0;
+  if (s.customLiquid) liquidCustom = s.customLiquid.reduce((a,c)=>a+(c.value||0),0);
+  if (s.customInvest) {
+    s.customInvest.forEach(c => {
+      const name = (c.label||'').toLowerCase();
+      if (name.includes('基金')) fundCustom += (c.value||0);
+      else if (name.includes('etf')||name.includes('股票')) etfCustom += (c.value||0);
+      else if (name.includes('黄金')) goldCustom += (c.value||0);
+      else fundCustom += (c.value||0); // 默认归入基金
+    });
+  }
+
+  const groups = [
+    { label:'流动资金', value: liquid+liquidCustom, color:'#F59E0B' },
+    { label:'基金', value: fund+fundCustom, color:'#7C3AED' },
+    { label:'ETF', value: etf+etfCustom, color:'#06B6D4' },
+    { label:'黄金', value: gold+goldCustom, color:'#EF4444' },
+  ];
+
+  const active = groups.filter(g=>g.value>0);
+  const total  = active.reduce((a,g)=>a+g.value,0);
+
+  document.getElementById('pie-legend').innerHTML = active.map(g=>`
+    <div class="pie-legend-item">
+      <span class="pie-legend-dot" style="background:${g.color};"></span>
+      <span class="pie-legend-label">${g.label}</span>
+      <span class="pie-legend-value">${total?(g.value/total*100).toFixed(1):0}%</span>
+    </div>`).join('') || '<div class="empty">暂无数据</div>';
+
+  chartPie = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:active.map(g=>g.label), datasets:[{ data:active.map(g=>g.value), backgroundColor:active.map(g=>g.color), borderWidth:2, borderColor:'#fff' }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: c=>` ¥${fmt(c.parsed)} (${total?(c.parsed/total*100).toFixed(1):0}%)` } }
+      },
+      cutout:'65%'
+    }
+  });
+}
+
+// ============================================================
+// SNAPSHOT
+// ============================================================
+function openSnapshotModal(id) {
+  editingSnapshotId = id || null;
+  customBuf = { liquid: [], invest: [], debt: [] };
+
+  const latest = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+
+  if (id) {
+    const s = snapshots.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('snapshot-modal-title').textContent = '编辑快照';
+    document.getElementById('snap-date').value = s.date;
+    document.getElementById('snap-type').value = s.type;
+    document.getElementById('snap-note').value = s.note || '';
+    for (const [fid, key] of Object.entries(FIELD_ID_MAP)) {
+      const el = document.getElementById('acc-'+fid);
+      if (el) el.value = s[key] || '';
+    }
+    if (s.customLiquid) customBuf.liquid = s.customLiquid.map(c=>({...c}));
+    if (s.customInvest) customBuf.invest = s.customInvest.map(c=>({...c}));
+    if (s.customDebt)   customBuf.debt   = s.customDebt.map(c=>({...c}));
+  } else {
+    document.getElementById('snapshot-modal-title').textContent = '新建资产快照';
+    document.getElementById('snap-date').value = today();
+    document.getElementById('snap-type').value = 'start';
+    document.getElementById('snap-note').value = '';
+    
+    // 复制上次快照数据
+    if (latest) {
+      for (const [fid, key] of Object.entries(FIELD_ID_MAP)) {
+        const el = document.getElementById('acc-'+fid);
+        if (el) el.value = latest[key] || '';
+      }
+      if (latest.customLiquid) customBuf.liquid = latest.customLiquid.map(c=>({...c}));
+      if (latest.customInvest) customBuf.invest = latest.customInvest.map(c=>({...c}));
+      if (latest.customDebt)   customBuf.debt   = latest.customDebt.map(c=>({...c}));
+    } else {
+      // 首次使用，清空所有字段
+      for (const [fid] of Object.entries(FIELD_ID_MAP)) {
+        const el = document.getElementById('acc-'+fid);
+        if (el) el.value = '';
+      }
+    }
+  }
+
+  ['liquid','invest','debt'].forEach(g => renderCustomAccounts(g));
+  document.getElementById('snapshot-modal').classList.add('open');
+}
+
+function closeSnapshotModal() {
+  document.getElementById('snapshot-modal').classList.remove('open');
+  editingSnapshotId = null;
+}
+
+function addCustomAccount(group) {
+  const id = genId();
+  customBuf[group].push({ id, label: '', value: '' });
+  renderCustomAccounts(group);
+}
+
+function removeCustomAccount(group, id) {
+  customBuf[group] = customBuf[group].filter(c => c.id !== id);
+  renderCustomAccounts(group);
+}
+
+function renderCustomAccounts(group) {
+  const el = document.getElementById(group + '-custom');
+  if (!customBuf[group].length) { el.innerHTML = ''; return; }
+  let html = '<div style="margin-top:8px;">';
+  for (const c of customBuf[group]) {
+    html += `<div class="custom-acc-row">
+      <input class="label-input" type="text" placeholder="账户名" value="${c.label}"
+        oninput="customBuf['${group}'].find(x=>x.id==='${c.id}').label=this.value">
+      <input type="number" placeholder="0" step="0.01" value="${c.value}"
+        oninput="customBuf['${group}'].find(x=>x.id==='${c.id}').value=+this.value||0">
+      <button class="del-btn" onclick="removeCustomAccount('${group}','${c.id}')">×</button>
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function saveSnapshot() {
+  const date = document.getElementById('snap-date').value;
+  if (!date) { toast('请选择日期'); return; }
+
+  const s = {
+    id: editingSnapshotId || genId(),
+    date,
+    type: document.getElementById('snap-type').value,
+    note: document.getElementById('snap-note').value.trim(),
+    boc:     +document.getElementById('acc-boc').value     || 0,
+    cmb:     +document.getElementById('acc-cmb').value     || 0,
+    wx:      +document.getElementById('acc-wx').value      || 0,
+    wxt:     +document.getElementById('acc-wxt').value     || 0,
+    alipay:  +document.getElementById('acc-alipay').value  || 0,
+    yeb:     +document.getElementById('acc-yeb').value     || 0,
+    xhb:     +document.getElementById('acc-xhb').value     || 0,
+    thsEtf:  +document.getElementById('acc-ths-etf').value  || 0,
+    thsFund: +document.getElementById('acc-ths-fund').value || 0,
+    aliFund: +document.getElementById('acc-ali-fund').value || 0,
+    aliGold: +document.getElementById('acc-ali-gold').value || 0,
+    txGold:  +document.getElementById('acc-tx-gold').value  || 0,
+    huabei:  +document.getElementById('acc-huabei').value   || 0,
+    baitiao: +document.getElementById('acc-baitiao').value  || 0,
+    douyin:  +document.getElementById('acc-douyin').value   || 0,
+    meituan: +document.getElementById('acc-meituan').value  || 0,
+    friend:  +document.getElementById('acc-friend').value   || 0,
+    customLiquid: customBuf.liquid.filter(c=>c.label).map(c=>({...c,value:+c.value||0})),
+    customInvest: customBuf.invest.filter(c=>c.label).map(c=>({...c,value:+c.value||0})),
+    customDebt:   customBuf.debt.filter(c=>c.label).map(c=>({...c,value:+c.value||0})),
+  };
+
+  if (editingSnapshotId) {
+    const idx = snapshots.findIndex(x => x.id === editingSnapshotId);
+    if (idx >= 0) snapshots[idx] = s;
+  } else {
+    snapshots.push(s);
+  }
+  snapshots.sort((a,b) => a.date > b.date ? 1 : -1);
+  DB.save(SNAPSHOTS_KEY, snapshots);
+  closeSnapshotModal();
+  renderSnapshotList();
+  toast('✅ 快照已保存');
+}
+
+function deleteSnapshot(id) {
+  if (!confirm('确定删除这条快照？')) return;
+  snapshots = snapshots.filter(x => x.id !== id);
+  DB.save(SNAPSHOTS_KEY, snapshots);
+  renderSnapshotList();
+  toast('已删除');
+}
+
+function renderSnapshotList() {
+  const container = document.getElementById('snapshot-list');
+  if (!snapshots.length) {
+    container.innerHTML = '<div class="card"><div class="empty"><div class="icon">📸</div>暂无快照，点击上方按钮新建第一条</div></div>';
+    return;
+  }
+  const typeMap   = { start:'月初', custom:'自定义' };
+  const typeClass = { start:'tag-blue', custom:'tag-orange' };
+
+  let html = '';
+  for (const s of [...snapshots].reverse()) {
+    const t = calcSnapshot(s);
+
+    let accHtml = '';
+    for (const k of FIXED_LIQUID) {
+      if (s[k]) accHtml += `<div class="account-item"><span class="account-name">${FIXED_LIQUID_LABELS[k]}</span><span class="account-value">¥${fmt(s[k])}</span></div>`;
+    }
+    if (s.customLiquid) s.customLiquid.forEach(c => {
+      if (c.value) accHtml += `<div class="account-item"><span class="account-name">${c.label}</span><span class="account-value">¥${fmt(c.value)}</span></div>`;
+    });
+    for (const k of FIXED_INVEST) {
+      if (s[k]) accHtml += `<div class="account-item"><span class="account-name">${FIXED_INVEST_LABELS[k]}</span><span class="account-value">¥${fmt(s[k])}</span></div>`;
+    }
+    if (s.customInvest) s.customInvest.forEach(c => {
+      if (c.value) accHtml += `<div class="account-item"><span class="account-name">${c.label}</span><span class="account-value">¥${fmt(c.value)}</span></div>`;
+    });
+    for (const k of FIXED_DEBT) {
+      if (s[k]) accHtml += `<div class="account-item"><span class="account-name">${FIXED_DEBT_LABELS[k]}（负债）</span><span class="account-value" style="color:var(--danger);">-¥${fmt(s[k])}</span></div>`;
+    }
+    if (s.customDebt) s.customDebt.forEach(c => {
+      if (c.value) accHtml += `<div class="account-item"><span class="account-name">${c.label}（负债）</span><span class="account-value" style="color:var(--danger);">-¥${fmt(c.value)}</span></div>`;
+    });
+
+    html += `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">${s.date} <span class="tag ${typeClass[s.type]||'tag-orange'}">${typeMap[s.type]||s.type}</span></div>
+          ${s.note ? `<div style="font-size:12px;color:var(--gray);margin-top:4px;">${s.note}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" onclick="openSnapshotModal('${s.id}')">编辑</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSnapshot('${s.id}')">删除</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-item"><div class="stat-label">净资产</div><div class="stat-value">¥${fmtShort(t.net)}</div></div>
+        <div class="stat-item green"><div class="stat-label">总资产</div><div class="stat-value" style="color:var(--success);">¥${fmtShort(t.total)}</div></div>
+        <div class="stat-item orange"><div class="stat-label">流动资金</div><div class="stat-value" style="color:var(--warning);">¥${fmtShort(t.liquid)}</div></div>
+        <div class="stat-item"><div class="stat-label">投资资产</div><div class="stat-value">¥${fmtShort(t.invest)}</div></div>
+        <div class="stat-item red"><div class="stat-label">负债</div><div class="stat-value" style="color:var(--danger);">¥${fmtShort(t.debt)}</div></div>
+      </div>
+      <div class="snapshot-accounts">${accHtml}</div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ============================================================
+// RECORDS
+// ============================================================
+function initRecordForm() {
+  if (!document.getElementById('rec-date').value) {
+    document.getElementById('rec-date').value = today();
+  }
+}
+
+function clearRecordForm() {
+  document.getElementById('rec-amount').value = '';
+  document.getElementById('rec-note').value   = '';
+}
+
+function saveRecord() {
+  const date   = document.getElementById('rec-date').value;
+  const type   = document.getElementById('rec-type').value;
+  const amount = +document.getElementById('rec-amount').value;
+  const note   = document.getElementById('rec-note').value.trim();
+  if (!date)   { toast('请选择日期'); return; }
+  if (!amount) { toast('请填写金额'); return; }
+  records.push({ id: genId(), date, type, amount, note });
+  records.sort((a,b) => a.date > b.date ? 1 : -1);
+  DB.save(RECORDS_KEY, records);
+  clearRecordForm();
+  renderRecordsList();
+  toast('✅ 记录已保存');
+}
+
+function deleteRecord(id) {
+  if (!confirm('确定删除？')) return;
+  records = records.filter(x => x.id !== id);
+  DB.save(RECORDS_KEY, records);
+  renderRecordsList();
+  toast('已删除');
+}
+
+function renderRecordsList() {
+  const container = document.getElementById('records-list-body');
+  if (!records.length) {
+    container.innerHTML = '<div class="empty"><div class="icon">📋</div>暂无记录，在上方填写后保存</div>';
+    return;
+  }
+  const byMonth = {};
+  for (const r of [...records].reverse()) {
+    const m = monthOf(r.date);
+    if (!byMonth[m]) byMonth[m] = [];
+    byMonth[m].push(r);
+  }
+  let html = '';
+  for (const [month, recs] of Object.entries(byMonth)) {
+    const totalInc = recs.filter(r=>r.type.startsWith('income')).reduce((s,r)=>s+r.amount,0);
+    const totalInv = recs.filter(r=>r.type.startsWith('invest')).reduce((s,r)=>s+(r.type==='invest_sell'?-r.amount:r.amount),0);
+    html += `<div class="month-header">${month}
+      <span style="color:var(--success);">收入 ¥${fmt(totalInc)}</span>
+      <span style="color:var(--info);">投资 ¥${fmt(totalInv)}</span>
+    </div><div class="record-list">`;
+    for (const r of recs) {
+      const isIncome = r.type.startsWith('income');
+      const isInvest = r.type.startsWith('invest');
+      const color = isIncome ? 'var(--success)' : (isInvest ? 'var(--info)' : 'var(--gray)');
+      const sign = isIncome ? '+' : (r.type==='invest_sell' ? '+' : '-');
+      html += `<div class="record-item">
+        <div class="record-info">
+          <div class="record-title">${TYPE_LABEL[r.type]||r.type}</div>
+          <div class="record-sub">${r.date}${r.note ? ' · '+r.note : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="record-amount" style="color:${color};">${sign}¥${fmt(r.amount)}</div>
+          <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">×</button>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings() {
+  document.getElementById('stats-snapshots').textContent = snapshots.length;
+  document.getElementById('stats-records').textContent   = records.length;
+}
+
+function exportData() {
+  const data = {
+    version: '2.0',
+    exportTime: new Date().toISOString(),
+    snapshots,
+    records
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `财务数据_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ 数据已导出');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.snapshots || !data.records) {
+        toast('❌ 文件格式错误');
+        return;
+      }
+      if (!confirm('导入会覆盖当前所有数据，确定继续？')) return;
+      snapshots = data.snapshots;
+      records   = data.records;
+      DB.save(SNAPSHOTS_KEY, snapshots);
+      DB.save(RECORDS_KEY, records);
+      toast('✅ 数据已导入');
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      toast('❌ 文件解析失败');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function clearAllData() {
+  if (!confirm('确定清空所有数据？此操作不可恢复！')) return;
+  if (!confirm('再次确认：真的要清空所有数据吗？')) return;
+  snapshots = [];
+  records   = [];
+  DB.save(SNAPSHOTS_KEY, snapshots);
+  DB.save(RECORDS_KEY, records);
+  toast('✅ 已清空');
+  setTimeout(() => location.reload(), 1000);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('snap-date').value = today();
+document.getElementById('rec-date').value  = today();
+renderOverview();
+renderSnapshotList();
+renderRecordsList();
+renderSettings();
+
+document.getElementById('snapshot-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeSnapshotModal();
+});
+</script>
+</body>
+</html>
